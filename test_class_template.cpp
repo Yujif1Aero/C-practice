@@ -58,7 +58,7 @@ int main() {
    cout << (student1+1)->template Show<double>(10.1) << endl;
    cout << student1[1]. template Show<int>(99) << endl;
    cout << student1[0].Show(hoge) << endl;
-   cout << student->Show(hoge) << endl;
+   cout << student->Show<string>(hoge) << endl;
    int size = sizeof (arry_test) / sizeof (int);
    cout << size <<endl; 
    for(int i = 0; i < size; ++i ){
