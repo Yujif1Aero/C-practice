@@ -55,6 +55,13 @@ struct Descending {
   }
 };
 
+struct genricOperator {
+  template <typename T>
+  bool operator()(T a, T b) {
+    return a > b;
+  }
+};
+
 
 int add(int a, int b){
   return a + b;
