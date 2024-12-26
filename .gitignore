@@ -8,3 +8,6 @@ x64/
 *.ilk
 *.idb
 *.out
+*.vcxproj.user
+*.suo
+*.log
