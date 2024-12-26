@@ -1,1 +1,10 @@
 *.~undo-tree~
+x64/
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.idb
+*.out
