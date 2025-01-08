@@ -4,7 +4,7 @@
 #include <cmath> // for sin()
 
 enum Axis { X_AXIS = 0, Y_AXIS = 1, Z_AXIS = 2 };
-int energySpectra1D(std::vector<double> input, const int nx, const int ny, const int nz, Axis axis)
+int energySpectra1D(std::vector<double> input, const int nAxis, const int n1, const int n2, Axis axis)
 {
 
   //ys int nAxis = 0;
@@ -14,121 +14,110 @@ int energySpectra1D(std::vector<double> input, const int nx, const int ny, const
   //ys   nAxis = ny;
   //ys else
   //ys   nAxis = nz;
-  const int nAxis = (axis == X_AXIS) ? nx : (axis == Y_AXIS) ? ny : nz;
 
-  const int halfNplus1 = nAxis / 2 + 1;
+  const int    halfNplus1 = nAxis / 2 + 1;
+  const size_t c_size     = nAxis * n1 * n2;
 
+  // FFT用バッファ
+  std::vector<double>       row_data(nAxis);
+  std::vector<fftw_complex> row_out(halfNplus1);
+  std::vector<fftw_complex> complex_data(halfNplus1 * n1 * n2); // 波数空間の全データ
   //ys   const size_t c_size = (nAxis / 2 + 1) * ((axis == X_AXIS) ? ny * nz : (axis == Y_AXIS) ? nx * nz : nx * ny);
-  size_t c_size   = 0;
-  size_t out_size = nAxis / 2 + 1;
-  if (axis == X_AXIS) {
-    c_size = (size_t)(nx / 2 + 1) * ny * nz;
-  }
-  else if (axis == Y_AXIS) {
-    c_size = (size_t)nx * (ny / 2 + 1) * nz;
-  }
-  else {
-    c_size = (size_t)nx * ny * (nz / 2 + 1);
-  }
 
-  size_t real_size = (size_t)nx * ny * nz;
+  fftw_plan plan;
 
-  // 各 Y, Z 点で 1D FFT を個別に計算
-  fftw_plan                 plan;
-  std::vector<double>       row_data(nAxis);     // 1次元のデータ
-  std::vector<fftw_complex> row_out(halfNplus1); // 1次元 FFT 結果
-  std::vector<fftw_complex> complex_data(c_size);
-
-  for (int k = 0; k < nz; k++) {
-    for (int j = 0; j < ny; j++) {
-      // 1Dデータを抽出
-      for (int i = 0; i < nAxis; i++) {
+  // 各スライスでFFTを実行
+  for (int d2 = 0; d2 < n2; ++d2) {
+    for (int d1 = 0; d1 < n1; ++d1) {
+      // 入力データの抽出
+      for (int i = 0; i < nAxis; ++i) {
         if (axis == X_AXIS) {
-          row_data[i] = input[i + nx * (j + ny * k)];
+          // X軸に沿って変動する場合
+          // index = z * Ny * Nx + y * Nx + x
+          // d2 = z, d1 = y, i = x
+          row_data[i] = input[i + nAxis * (d1 + n1 * d2)];
         }
         else if (axis == Y_AXIS) {
-          row_data[i] = input[i + nx * (j + ny * k)];
+          // Y軸に沿って変動する場合
+          // index = z * Ny * Nx + y * Nx + x
+          // d2 = z, d1 = x, i = y
+          //ys           row_data[i] = input[d1 + n1 * (i + nAxis * d2)];
+          row_data[i] = input[i * nAxis + d2];
         }
         else if (axis == Z_AXIS) {
-          row_data[i] = input[i + nx * (j + ny * k)];
+          // Z軸に沿って変動する場合
+          // index = z * Ny * Nx + y * Nx + x
+          // d2 = y, d1 = x, i = z
+          row_data[i] = input[i * n1 * n2 + d1 * n2 + d2]; //[z][y][x] index = z * (Ny * Nx) + y * Nx + x
         }
       }
 
-      // FFT プランの作成
+      // FFTプランの作成と実行
       plan = fftw_plan_dft_r2c_1d(nAxis, row_data.data(), row_out.data(), FFTW_MEASURE);
       if (!plan) {
         std::cerr << "FFTW plan creation failed!" << std::endl;
         return 1;
       }
-
-      // FFT 実行
       fftw_execute(plan);
+
       // 結果を保存
-      for (int i = 0; i < halfNplus1; i++) {
-        int idx = 0;
-        if (axis == X_AXIS) {
-          idx = i + halfNplus1 * (j + ny * k);
-        }
-        else if (axis == Y_AXIS) {
-          idx = i + halfNplus1 * (j + ny * k);
-        }
-        else if (axis == Z_AXIS) {
-          idx = i + halfNplus1 * (j + ny * k);
-        }
-        complex_data[idx][0] = row_out[i][0];
-        complex_data[idx][1] = row_out[i][1];
+      for (int i = 0; i < halfNplus1; ++i) {
+        int idx =   i + halfNplus1 * (d1 + n1 * d2);
+
+        //ys if (axis == X_AXIS) {
+        //ys   idx = i + halfNplus1 * (d1 + n1 * d2);
+        //ys }
+        //ys else if (axis == Y_AXIS) {
+        //ys   idx = d1 + n1 * (i + halfNplus1 * d2);
+        //ys }
+        //ys else if (axis == Z_AXIS) {
+        //ys   idx = d2 + n2 * (i + halfNplus1 * d1);
+        //ys }
+        complex_data[idx][0] = row_out[i][0]/nAxis;
+        complex_data[idx][1] = row_out[i][1]/nAxis;
       }
 
       fftw_destroy_plan(plan);
     }
   }
-  for (int k = 0; k < nz; k++) {
-    std::cout << "start: k=" << k << std::endl;
-    for (int j = 0; j < ny; j++) {
-      std::cout << " start: j=" << j << std::endl;
-      //ys         std::cout << "Power Spectrum for Y = " << j << ", Z = " << k << ":\n";
 
-      // 各波数成分を計算
+  // FFT結果の正規化と出力
+  for (int d2 = 0; d2 < n2; d2++) {
+    std::cout << "start: d2=" << d2 << std::endl;
+    for (int d1 = 0; d1 < n1; d1++) {
+      std::cout << " start: d1=" << d1 << std::endl;
+
+      // パワースペクトル計算用
       std::vector<double> power_spectrum(halfNplus1, 0.0);
+
       for (int i = 0; i < halfNplus1; i++) {
         std::cout << "  start: i=" << i << std::endl;
-        int idx = i + halfNplus1 * (j + ny * k);
-        complex_data[idx][0] /= nAxis;
-        complex_data[idx][1] /= nAxis;
+
+        // FFT結果のインデックス計算
+
+        int idx = i + halfNplus1 * (d1 + n1 * d2);
+
+        // FFT結果の正規化
+        //ys complex_data[idx][0] /= nAxis;
+        //ys complex_data[idx][1] /= nAxis;
+
+        // FFT結果の表示
         std::cout << "FFT[" << i << "] = " << complex_data[idx][0] << " + i" << complex_data[idx][1] << "\n";
+
+        // パワースペクトル計算
         double real       = complex_data[idx][0];
         double imag       = complex_data[idx][1];
         power_spectrum[i] = (real * real + imag * imag);
 
-        // 結果を出力
-        std::cout << "Power Spectrum for Y = " << j << ", Z = " << k << ":";
+        // パワースペクトルの表示
+        std::cout << "Power Spectrum for d1 = " << d1 << ", d2 = " << d2 << ":";
         std::cout << "power_spectrum[" << i << "] = " << power_spectrum[i] << "\n";
         std::cout << "  i=" << i << " :done" << std::endl;
       }
-      std::cout << " j=" << j << " :done" << std::endl;
+      std::cout << " d1=" << d1 << " :done" << std::endl;
     }
-    std::cout << "k=" << k << " :done" << std::endl;
+    std::cout << "d2=" << d2 << " :done" << std::endl;
   }
-  //ys // エネルギースペクトルとパワースペクトルを計算
-  //ys std::vector<double> energy_spectrum(out_size, 0.0);
-  //ys std::vector<double> power_spectrum(out_size, 0.0);
-  //ys double              total_magnitude_squared = {};
-  //ys double              total_magnitude         = {};
-
-  //ys for (int k = 0; k < out_size; ++k) {
-  //ys   double real              = complex_data[k][0];
-  //ys   double imag              = complex_data[k][1];
-  //ys   double magnitude_squared = real * real + imag * imag;
-  //ys   power_spectrum[k]        = magnitude_squared;
-  //ys }
-
-  //ys // 結果を出力
-  //ys std::cout << "\nFrequency\tPower Spectrum\n";
-  //ys for (int k = 0; k < out_size; ++k) {
-  //ys   std::cout << k << "\t\t" << power_spectrum[k] << "\n";
-  //ys }
-
-  //ys fftw_destroy_plan(plan);
 
   return 0;
 }
