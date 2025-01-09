@@ -1,3 +1,5 @@
+///g++ -std=c++20 test.cpp
+
 #include <iostream>
 
 template <auto Func>
@@ -10,7 +12,7 @@ void template_callFunction(Func func,int a, int b){
   std::cout << "template_callFunction : " << func(a,b) << std::endl;
 }
 
-template <auto Func>
+template <auto& Func>
 void template_callFunction(int a, int b){
   std::cout << "template_callFunction without func : " << Func(a,b) << std::endl;
 }
@@ -71,9 +73,11 @@ int main (){
   
   callFunction<add>(1, 2); // pointer of function as template parameter
   Adder{} (3,4);
+  Adder add{};
   template_callFunction<Adder>(Adder{},8, 2); // pointer of templete function as template parameter
   template_callFunction<Adder{}>(5, 2); // pointer of templete function as template parameter
   template_callFunction<Adder_args{}>(5, 2,1); // pointer of templete function as template parameter
+  template_callFunction<add>(3,4);
  
   return 0;
 }
