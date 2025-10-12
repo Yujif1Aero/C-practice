@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 __global__ void test_kernel2() {
-    int a = threadIdx.x;
+    int a = blockIdx.x*blockDim.x + threadIdx.x;
     printf("thread %d running\n", a);
 }
 
@@ -14,7 +14,7 @@ int main() {
     printf("executing on %s (sm_%d%d)\n", prop.name, prop.major, prop.minor);
 
     dim3 grid(1);
-    dim3 block(32);
+    dim3 block(1024);
 
     // <<< >>> means execute test_kernel2() in GPU with grid and block argument.
     test_kernel2<<<grid, block>>>();

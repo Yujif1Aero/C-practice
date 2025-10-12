@@ -83,6 +83,6 @@ int main()
 
   GPUMatrixMultiplication(A, B, C);
 
-  printf("Dot product (A·B) = %f\n", C);
+  printf("Dot product (AdotB) = %f\n", C);
   return 0;
 }
