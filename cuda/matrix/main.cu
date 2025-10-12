@@ -1,8 +1,9 @@
+#include <vector>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <cuda_runtime.h>
-#include "test_kernel.cuh"
+#include "kernel.cuh"
 
 template <typename T>
 void GPUMatrixMultiplication(const std::vector<T>& A, const std::vector<T>& B, T& C)
