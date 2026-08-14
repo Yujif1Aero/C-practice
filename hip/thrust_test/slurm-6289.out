@@ -1,0 +1,20 @@
+test.cpp:15:5: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+   15 |     hipSetDevice(0);
+      |     ^~~~~~~~~~~~~~~
+test.cpp:24:5: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+   24 |     hipFree(ptr);
+      |     ^~~~~~~~~~~~
+2 warnings generated when compiling for gfx90a.
+test.cpp:15:5: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+   15 |     hipSetDevice(0);
+      |     ^~~~~~~~~~~~~~~
+test.cpp:24:5: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+   24 |     hipFree(ptr);
+      |     ^~~~~~~~~~~~
+2 warnings generated when compiling for host.
+1. Initializing HIP...
+2. Setting Device 0...
+3. Testing raw HIP malloc...
+   Raw malloc success.
+4. Testing Thrust uint8_t device_vector...
+/cm/local/apps/slurm/var/spool/job06289/slurm_script: line 14: 847202 Segmentation fault      (core dumped) ./test_thrust
