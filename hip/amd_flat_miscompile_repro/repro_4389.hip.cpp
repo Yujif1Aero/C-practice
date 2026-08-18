@@ -6,30 +6,48 @@
 #include <hip/hip_runtime.h>
 #include <cstdio>
 
-__device__ float explodePlease(float *f, int i){ return f[1 - i]; }
+__device__ float explodePlease(float* f, int i) { return f[1 - i]; }
 
-__global__ void kernel(float *g, int i, bool b){
+__global__ void kernel(float* g, int i, bool b)
+{
     __shared__ float s[32];
     s[threadIdx.x] = 0;
     __syncthreads();
     *g = explodePlease(b ? s : g, i);
 }
 
-int main(){
-  float* g; if(hipMalloc(&g,sizeof(float)*64)!=hipSuccess){printf("malloc fail\n");return 2;}
-  hipMemset(g,0,sizeof(float)*64);
-  // sweep i and b; blocking so a fault surfaces at the faulting launch
-  for(int b=0;b<2;++b){
-    for(int i=-2;i<=4;++i){
-      kernel<<<1,32>>>(g,i,(bool)b);
-      hipError_t le=hipGetLastError();
-      hipError_t se=hipDeviceSynchronize();
-      printf("b=%d i=%2d : launch=%s sync=%s%s\n", b, i,
-             hipGetErrorString(le), hipGetErrorString(se),
-             se!=hipSuccess? "   <<< FAULT (miscompile)":"");
-      if(se!=hipSuccess){ printf(">>> reproduced #4389-style fault at b=%d i=%d\n",b,i); return 1; }
+int main()
+{
+    float* g;
+    if (hipMalloc(&g, sizeof(float) * 64) != hipSuccess) {
+        printf("malloc fail\n");
+        return 2;
     }
-  }
-  printf("no fault on this build\n");
-  return 0;
+    hipMemset(g, 0, sizeof(float) * 64);
+    // sweep i and b; blocking so a fault surfaces at the faulting launch
+    for (int b = 0; b < 2; ++b) {
+        for (int i = -2; i < 2; ++i) {
+            kernel<<<1, 32>>>(g, i, (bool)b);
+            hipError_t le = hipGetLastError();
+            hipError_t se = hipDeviceSynchronize();
+            printf("b=%d i=%2d : launch=%s sync=%s%s\n", b, i, hipGetErrorString(le), hipGetErrorString(se),
+                   se != hipSuccess ? "   <<< FAULT (miscompile)" : "");
+            if (se != hipSuccess) {
+                printf(">>> reproduced #4389-style fault at b=%d i=%d\n", b, i);
+                return 1;
+            }
+        }
+    }
+    int i = -100;
+    kernel<<<1, 32>>>(g, i, (bool)1);
+    hipError_t le = hipGetLastError();
+    hipError_t se = hipDeviceSynchronize();
+    printf("b=%d i=%2d : launch=%s sync=%s%s\n", 1, i, hipGetErrorString(le), hipGetErrorString(se),
+           se != hipSuccess ? "   <<< FAULT (miscompile)" : "");
+    if (se != hipSuccess) {
+        printf(">>> reproduced #4389-style fault at b=%d i=%d\n", 1, i);
+        return 1;
+    }
+    printf("no fault on this build\n");
+    return 0;
 }
