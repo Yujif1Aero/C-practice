@@ -8,7 +8,7 @@
 
 HIPCC    := hipcc
 ARCH     := gfx1100                 # W7900. Check yours with: rocm-smi --showproductname
-HIPFLAGS := -O0 -std=c++20 --offload-arch=$(ARCH)
+HIPFLAGS := -O3 -std=c++20 --offload-arch=$(ARCH)
 
 all: repro4389
 
