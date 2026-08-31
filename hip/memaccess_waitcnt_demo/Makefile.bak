@@ -1,0 +1,23 @@
+# Learning demos for "memory access, s_waitcnt, and pointer chasing" on gfx1100.
+#   make            -> build the crash700 executable + emit .s for onehop/twohop
+#   make asm        -> just (re)generate the assembly listings
+#   make clean
+HIPCC ?= hipcc
+ARCH  ?= gfx1100
+SFLAGS = --offload-arch=$(ARCH) --offload-device-only -S -O3
+
+all: crash700 asm
+
+crash700: crash700.hip.cpp
+	$(HIPCC) --offload-arch=$(ARCH) -O3 $< -o $@
+
+asm: onehop.s twohop.s
+
+onehop.s: onehop.hip.cpp
+	$(HIPCC) $(SFLAGS) $< -o $@
+twohop.s: twohop.hip.cpp
+	$(HIPCC) $(SFLAGS) $< -o $@
+
+clean:
+	rm -f crash700 onehop.s twohop.s
+.PHONY: all asm clean

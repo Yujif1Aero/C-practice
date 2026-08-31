@@ -1,0 +1,19 @@
+#!/bin/bash
+# Build everything, show the key instructions of 1-hop vs 2-hop, and run the
+# crash700 demo (which prints "HIP error 700"). Each .s here contains one kernel,
+# so we just grep the memory-related instructions from the whole file.
+set -u
+cd "$(dirname "$0")"
+make all >/dev/null 2>&1
+
+mem(){ grep -E '(global_load|s_waitcnt vmcnt|v_add_co|global_store)' "$1"; }
+
+echo "===== 1-HOP  out[i]=a[i]  : load -> wait -> store (NO v_add_co after the wait) ====="
+mem onehop.s
+echo
+echo "===== 2-HOP  *table[idx[i]] : load -> WAIT -> v_add_co (use loaded value as address) -> load ====="
+mem twohop.s
+echo
+echo "===== crash700 : deliberately read a bogus address (0xdeadbeef00) -> HIP 700 ====="
+HIP_LAUNCH_BLOCKING=1 ./crash700
+echo "(exit code $?  ; 188 = 700 & 0xFF)"
